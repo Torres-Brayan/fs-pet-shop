@@ -1,68 +1,88 @@
 "use strict";
-//import packages
-//set path
-var fs = require("fs");
-var path = require("path");
-var petPath = path.join(__dirname, "pets.json");
 
-//get http package
-//set port
-var http = require("http");
-var PORT = process.env.PORT || 8000;
+const fs = require("fs");
+const path = require("path");
+const petPath = path.join(__dirname, "pets.json");
+const express = require("express");
+const app = express();
 
-//create server
-//if get request
-//read file
-//if err
-//respond w console error and code data
-var server = http.createServer(function (req, res) {
-  if (req.method === "GET" && req.url === "/pets") {
-    fs.readFile(petPath, "utf8", function (err, data) {
-      if (err) {
-        console.error("error at request");
-        res.statusCode = 500;
-        res.setHeader("Content-type", "text/plain");
-        return res.end("Internal error");
-      }
+app.get("/pets", function (req, res, next) {
+  fs.readFile(petPath, "utf8", function (err, data) {
+    if (err) {
+        res.set("Content-Type", "text/plain");
+        next({status : 500, message : 'Something went wrong'});
+    }
+    let petData = JSON.parse(data);
+    res.status(200).send(petData);
+  });
+});
 
-      res.statusCode = 200;
-      res.setHeader("content-type", "application/json");
-      res.end(data);
-    });
-  } else if (req.method === "GET" && req.url === "/pets/0") {
-    fs.readFile(petPath, "utf8", function (err, data) {
-      if (err) {
-        console.error("error at request");
-        res.statusCode = 500;
-        res.setHeader("Content-type", "text/plain");
-        return res.end("Internal error");
-      }
-      var pets = JSON.parse(data);
-      var petsJSON = JSON.stringify(pets[0]);
-      res.statusCode = 200;
-      res.setHeader("content-type", "application/json");
-      res.end(petsJSON);
-    });
-  } else if (req.method === "GET" && req.url === "/pets/1") {
-    fs.readFile(petPath, "utf8", function (err, data) {
-      if (err) {
-        console.error("error at request");
-        res.statusCode = 500;
-        res.setHeader("Content-type", "text/plain");
-        return res.end("Internal error");
-      }
-      var pets = JSON.parse(data);
-      var petsJSON = JSON.stringify(pets[1]);
-      res.statusCode = 200;
-      res.setHeader("content-type", "application/json");
-      res.end(petsJSON);
-    });
-  } else {
-    res.statusCode = 404;
-    res.setHeader('content-type','text/plain');
-    res.end('Not found');
+app.get("/pets/:id", function (req, res, next) {
+  const id = req.params.id;
+  fs.readFile(petPath, "utf8", function (err, data) {
+    if (err) {
+        res.set("Content-Type", "text/plain");
+        next({status : 500, message : 'Something went wrong'});
+    }
+    let petData = JSON.parse(data);
+    if (!petData[id]) {
+        res.set("Content-Type", "text/plain");
+        next({status : 404, message : 'bad address'});
+    }
+    res.status(200).json(petData[id]);
+  });
+});
+
+app.use(express.json());
+
+
+app.post("/pets", function (req, res, next) {
+  const data = req.body;
+  if (!data.name || !data.kind || !data.age) {
+    res.set("Content-Type", "text/plain");
+        next({status : 404, message : 'Bad Parameters'});
   }
+  fs.readFile(petPath, "utf8", function (err, arr) {
+      var newArr = JSON.parse(arr);
+      newArr.push(data);
+    fs.writeFile(petPath, JSON.stringify(newArr), function (err) {
+      if (err) {
+        res.set("Content-Type", "text/plain");
+        next({status : 400, message : 'Bad Request'});
+      }
+    });
+  });
+  return res.status(200).send(data);
 });
-server.listen(PORT, function () {
-  console.log("Listening on port", PORT);
+app.get('/boom', (req, res, next) => {
+    next({ error: 'yooyuy!' })
+  })
+
+  app.use((err, req, res, next) => {
+    res.set("Content-Type", "text/plain");
+    res.status(500).json(err)
+  })
+app.get('/test-error', function(req, res, next) {
+    const error = new Error('simulated error');
+    next(error);
+})
+
+// app.use(function(err, req, res, next) {
+//     res.set("Content-Type", "text/plain");
+//     res.status(err.status).json({error : err});
+
+// });
+
+
+// app.use(function(req, res, next) {
+//     res.set("Content-Type", "text/plain");
+//     res.status(404).send('you suck idiot')
+// });
+
+// {error : {message: 'server sucks'}}
+// {error : {message: 'you suck'}}
+app.listen(8000, function () {
+  console.log("listening bb");
 });
+
+
