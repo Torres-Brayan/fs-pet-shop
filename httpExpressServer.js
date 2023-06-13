@@ -19,7 +19,7 @@ app.get("/get", function (req, res, next) {
     if (err) {
       next({ status: 500, message: "internal error" });
     }
-    return res.end(data);
+    return res.send(data);
   });
 });
 
@@ -87,9 +87,9 @@ app.delete("/delete/:index", function (req, res, next) {
       next({ status: 500, message: "internal error" });
     }
     let listData = JSON.parse(data);
+    let temp1 = listData[index]
     let removed = listData.splice(index, 1);
-    console.log(removed);
-    if (!index || !listData || !data) {
+    if (!index || !listData || !data || !temp1) {
       return next({ status: 400, message: "INPUT ERROR" });
     }
     fs.writeFile(petPath, JSON.stringify(listData), function (err) {
